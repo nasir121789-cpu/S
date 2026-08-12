@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Live Web App</title>
+    <!-- Firebase SDK (Compat Version) -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+    
+    <style>
+        html, body {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background: #ffffff;
+        }
+        
+        iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+            display: block;
+        }
+
+        #appLoader {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #0f172a;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 99999;
+            transition: opacity 0.4s ease, visibility 0.4s ease;
+        }
+
+        .spinner {
+            width: 45px;
+            height: 45px;
+            border: 4px solid rgba(255, 255, 255, 0.1);
+            border-left-color: #38bdf8;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+
+    <div id="appLoader">
+        <div class="spinner"></div>
+    </div>
+
+    <iframe id="liveFrame"></iframe>
+
+<script>
+    const liveFrame = document.getElementById("liveFrame");
+    const loader = document.getElementById("appLoader");
+
+    // UTF-8 Safe Decoding Helper
+    function safeDecode(str) {
+        try {
+            return decodeURIComponent(atob(str).split('').map(function(c) {
+                return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+            }).join(''));
+        } catch(e) {
+            return str;
+        }
+    }
+
+    // ১. লোকাল ক্যাশ থেকে ডাটা রেন্ডার করা
+    const cachedCode = localStorage.getItem("cached_website_code");
+    if (cachedCode) {
+        renderCode(safeDecode(cachedCode));
+        hideLoader();
+    }
+
+    // ফায়ারবেস কনফিগারেশন
+    const firebaseConfig = {
+        apiKey: "AIzaSyCRPznhfxF6YeiljE_e4DUYFZ9w2o3nt14",
+        authDomain: "bazarbd-249fe.firebaseapp.com",
+        databaseURL: "https://bazarbd-249fe-default-rtdb.firebaseio.com",
+        projectId: "bazarbd-249fe",
+        storageBucket: "bazarbd-249fe.firebasestorage.app",
+        messagingSenderId: "130704199175",
+        appId: "1:130704199175:web:149749ebfb7c156ea4a4a2",
+        measurementId: "G-EHNL4H2HQN"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const database = firebase.database();
+
+    // ২. ফায়ারবেস থেকে লাইভ কোড লোড ও রেন্ডার
+    database.ref('cloudWebsiteCode').on('value', (snapshot) => {
+        const encryptedCode = snapshot.val();
+        if (encryptedCode) {
+            if (encryptedCode !== cachedCode) {
+                localStorage.setItem("cached_website_code", encryptedCode);
+                renderCode(safeDecode(encryptedCode));
+            }
+            hideLoader();
+        }
+    });
+
+    function renderCode(code) {
+        const frameDoc = liveFrame.contentDocument || liveFrame.contentWindow.document;
+        frameDoc.open();
+        frameDoc.write(code);
+        frameDoc.close();
+    }
+
+    function hideLoader() {
+        if (loader) {
+            loader.style.opacity = "0";
+            setTimeout(() => {
+                loader.style.visibility = "hidden";
+            }, 400);
+        }
+    }
+</script>
+
+</body>
+</html>
